@@ -9,7 +9,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import District
-# from .serializers import DistrictTemperatureSerializer
 
 districts_url = "https://raw.githubusercontent.com/strativ-dev/technical-screening-test/main/bd-districts.json"
 weather_api_url = "https://api.open-meteo.com/v1/forecast"
@@ -45,8 +44,6 @@ def calculate_average_2pm_temperature(weather_data):
 class DistrictListView(APIView):
     def get(self, request):
         districts = District.objects.all()
-        # serializer = DistrictTemperatureSerializer(districts, many=True)
-        # return Response(serializer.data, status=status.HTTP_200_OK)
 
 class CoolestDistrictsAPIView(APIView):
     renderer_classes = [JSONRenderer]
@@ -76,8 +73,4 @@ class CoolestDistrictsAPIView(APIView):
 
         coolest = sorted(district_temperatures, key=lambda x: x['average_temperature_2pm'])[:10]
         print(f"coolest : {coolest}")
-        # serializer = DistrictTemperatureSerializer(coolest, many=True)
         return Response({"coolest_districts": coolest}, status=status.HTTP_200_OK)
-
-        # except Exception as e:
-        #     return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
