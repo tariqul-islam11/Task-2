@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import District
-from .serializers import DistrictTemperatureSerializer
+# from .serializers import DistrictTemperatureSerializer
 
 districts_url = "https://raw.githubusercontent.com/strativ-dev/technical-screening-test/main/bd-districts.json"
 weather_api_url = "https://api.open-meteo.com/v1/forecast"
@@ -38,22 +38,20 @@ def get_weather_data(lat, lon, start_date, end_date):
 def calculate_average_2pm_temperature(weather_data):
     temperature_2pm = []
     for i in range(7):
-        day_index = i * 24 + 14  # Index for 2 PM each day
+        day_index = i * 24 + 14  
         temperature_2pm.append(weather_data['hourly']['temperature_2m'][day_index])
     return statistics.mean(temperature_2pm)
 
 class DistrictListView(APIView):
     def get(self, request):
         districts = District.objects.all()
-        serializer = DistrictTemperatureSerializer(districts, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # serializer = DistrictTemperatureSerializer(districts, many=True)
+        # return Response(serializer.data, status=status.HTTP_200_OK)
 
 class CoolestDistrictsAPIView(APIView):
     renderer_classes = [JSONRenderer]
 
     def get(self, request):
-        # try:
-        # Define the date range for the next 7 days
         today = datetime.now()
         start_date = today.strftime('%Y-%m-%d')
         end_date = (today + timedelta(days=6)).strftime('%Y-%m-%d')
