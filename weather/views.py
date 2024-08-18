@@ -58,13 +58,15 @@ class CoolestDistrictsAPIView(APIView):
         districts = districts['districts']
         for district in districts:
         
-            print(f"Printing dis : {district['lat']}")
+            #print(f"Printing dis : {district['lat']}")
             lat = district['lat']
             lon = district['long']
+            district_id = district['id']
             weather_data = get_weather_data(lat, lon, start_date, end_date)
             avg_temp = calculate_average_2pm_temperature(weather_data)
-            print(f"avg_temp : {avg_temp}")
+            print(f"avg_temp of district id ({district_id}): {avg_temp}")
             district_temperatures.append({
+                "district_id": district['id'],
                 "district": district['name'],
                 "latitude": lat,
                 "longitude": lon,
