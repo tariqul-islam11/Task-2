@@ -41,6 +41,18 @@ def calculate_average_2pm_temperature(weather_data):
         temperature_2pm.append(weather_data['hourly']['temperature_2m'][day_index])
     return statistics.mean(temperature_2pm)
 
+def get_district_by_id(district_id):
+    districts = get_districts()
+    for district in districts['districts']:
+        if district['id'] == str(district_id):
+            return {
+                'name': district['name'],
+                'lat': float(district['lat']),
+                'long': float(district['long'])
+            }
+    return None
+
+
 class DistrictListView(APIView):
     def get(self, request):
         districts = District.objects.all()
@@ -78,46 +90,45 @@ class CoolestDistrictsAPIView(APIView):
         return Response({"coolest_districts": coolest}, status=status.HTTP_200_OK)
 
 
-
-
 class TemperatureComparisonAPIView(APIView):
     renderer_classes = [JSONRenderer]
 
-    def get(self, request):
-        today = datetime.now()
-        start_date = today.strftime('%Y-%m-%d')
-        end_date = start_date 
-
-        dhaka_coords = {"lat": 23.8103, "lon": 90.4125}
-        sylhet_coords = {"lat": 24.8944, "lon": 91.8687}
+    def get(self, request, current_district_id, destination_district_id, date, hour):
+        current_district = get_district_by_id(current_district_id)
+        destination_district = get_district_by_id(destination_district_id)
+        hour = int(hour)
         
-        forecast_date = datetime(2024, 8, 25)
-        forecast_date_str = forecast_date.strftime('%Y-%m-%d')
+        if not current_district or not destination_district:
+            return Response({"error": "Invalid district ID"}, status=status.HTTP_400_BAD_REQUEST)
 
-        current_weather_dhaka = get_weather_data(dhaka_coords['lat'], dhaka_coords['lon'], start_date=start_date, end_date=end_date)
-        current_temp_dhaka = current_weather_dhaka['hourly']['temperature_2m'][14]
+        today = datetime.now()
+        current_date = today.strftime('%Y-%m-%d')
+        forecast_date = datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m-%d')
 
-        current_weather_sylhet = get_weather_data(sylhet_coords['lat'], sylhet_coords['lon'], start_date=start_date, end_date=end_date)
-        current_temp_sylhet = current_weather_sylhet['hourly']['temperature_2m'][14]
+        current_weather_current = get_weather_data(current_district['lat'], current_district['long'], current_date, current_date)
+        forecast_weather_current = get_weather_data(current_district['lat'], current_district['long'], forecast_date, forecast_date)
+        current_temp_current = current_weather_current['hourly']['temperature_2m'][hour]
+        forecast_temp_current = forecast_weather_current['hourly']['temperature_2m'][hour]
 
-        forecast_weather_dhaka = get_weather_data(dhaka_coords['lat'], dhaka_coords['lon'], forecast_date_str, forecast_date_str)
-        forecast_temp_dhaka = forecast_weather_dhaka['hourly']['temperature_2m'][14]
+        current_weather_destination = get_weather_data(destination_district['lat'], destination_district['long'], current_date, current_date)
+        forecast_weather_destination = get_weather_data(destination_district['lat'], destination_district['long'], forecast_date, forecast_date)
+        current_temp_destination = current_weather_destination['hourly']['temperature_2m'][hour]
+        forecast_temp_destination = forecast_weather_destination['hourly']['temperature_2m'][hour]
 
-        forecast_weather_sylhet = get_weather_data(sylhet_coords['lat'], sylhet_coords['lon'], forecast_date_str, forecast_date_str)
-        forecast_temp_sylhet = forecast_weather_sylhet['hourly']['temperature_2m'][14]
-
-        if isinstance(current_temp_dhaka, (float, int)) and isinstance(forecast_temp_sylhet, (float, int)):
-            if forecast_temp_sylhet > forecast_temp_dhaka:
-                decision = "The temperature in Sylhet is higher than in Dhaka. You should not visit Sylhet."
+        if isinstance(current_temp_current, (float, int)) and isinstance(forecast_temp_destination, (float, int)):
+            if forecast_temp_destination > forecast_temp_current:
+                decision = f"The temperature in {destination_district['name']} is higher than in {current_district['name']}. You should not visit the destination."
             else:
-                decision = "The temperature in Sylhet is lower than in Dhaka. You should visit Sylhet."
+                decision = f"The temperature in {destination_district['name']} is lower than in {current_district['name']}. You should visit the destination."
         else:
             decision = "Error: Temperature data is not in the expected format."
 
         return Response({
-            "current_temp_dhaka": current_temp_dhaka,
-            "forecast_temp_dhaka_on_25Aug": forecast_temp_dhaka,
-            "current_temp_sylhet": current_temp_sylhet,
-            "forecast_temp_sylhet_on_25Aug": forecast_temp_sylhet,
+            "current_district_name": current_district['name'],
+            "destination_district_name": destination_district['name'],
+            "current_temp_current": current_temp_current,
+            "forecast_temp_current": forecast_temp_current,
+            "current_temp_destination": current_temp_destination,
+            "forecast_temp_destination": forecast_temp_destination,
             "decision": decision
         }, status=status.HTTP_200_OK)
