@@ -90,17 +90,20 @@ class TemperatureComparisonAPIView(APIView):
 
         dhaka_coords = {"lat": 23.8103, "lon": 90.4125}
         sylhet_coords = {"lat": 24.8944, "lon": 91.8687}
+        
+        forecast_date = datetime(2024, 8, 25)
+        forecast_date_str = forecast_date.strftime('%Y-%m-%d')
 
         current_weather_dhaka = get_weather_data(dhaka_coords['lat'], dhaka_coords['lon'], start_date=start_date, end_date=end_date)
-        current_temp_dhaka = current_weather_dhaka['hourly']['temperature_2m'][14] #[datetime.now().hour]
+        current_temp_dhaka = current_weather_dhaka['hourly']['temperature_2m'][14]
 
         current_weather_sylhet = get_weather_data(sylhet_coords['lat'], sylhet_coords['lon'], start_date=start_date, end_date=end_date)
-        current_temp_sylhet = current_weather_sylhet['hourly']['temperature_2m'][14] #[datetime.now().hour]
+        current_temp_sylhet = current_weather_sylhet['hourly']['temperature_2m'][14]
 
-        forecast_weather_dhaka = get_weather_data(dhaka_coords['lat'], dhaka_coords['lon'], start_date=start_date, end_date=end_date)
+        forecast_weather_dhaka = get_weather_data(dhaka_coords['lat'], dhaka_coords['lon'], forecast_date_str, forecast_date_str)
         forecast_temp_dhaka = forecast_weather_dhaka['hourly']['temperature_2m'][14]
 
-        forecast_weather_sylhet = get_weather_data(sylhet_coords['lat'], sylhet_coords['lon'], start_date=start_date, end_date=end_date)
+        forecast_weather_sylhet = get_weather_data(sylhet_coords['lat'], sylhet_coords['lon'], forecast_date_str, forecast_date_str)
         forecast_temp_sylhet = forecast_weather_sylhet['hourly']['temperature_2m'][14]
 
         if isinstance(current_temp_dhaka, (float, int)) and isinstance(forecast_temp_sylhet, (float, int)):
@@ -113,8 +116,8 @@ class TemperatureComparisonAPIView(APIView):
 
         return Response({
             "current_temp_dhaka": current_temp_dhaka,
-            "forecast_temp_dhaka": forecast_temp_dhaka,
+            "forecast_temp_dhaka_on_25Aug": forecast_temp_dhaka,
             "current_temp_sylhet": current_temp_sylhet,
-            "forecast_temp_sylhet": forecast_temp_sylhet,
+            "forecast_temp_sylhet_on_25Aug": forecast_temp_sylhet,
             "decision": decision
         }, status=status.HTTP_200_OK)
