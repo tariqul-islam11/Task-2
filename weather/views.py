@@ -92,28 +92,31 @@ class CoolestDistrictsAPIView(APIView):
 
 class TemperatureComparisonAPIView(APIView):
     renderer_classes = [JSONRenderer]
+    
+    def _serialize_weather_data(self, weather_data, hour, curr_date, forecast_date):
+        current_weather_current = get_weather_data(weather_data['lat'], weather_data['long'], curr_date, curr_date)
+        forecast_weather_current = get_weather_data(weather_data['lat'], weather_data['long'], forecast_date, forecast_date)
+        current_temp_current = current_weather_current['hourly']['temperature_2m'][hour]
+        forecast_temp_current = forecast_weather_current['hourly']['temperature_2m'][hour]
+        return current_temp_current, forecast_temp_current
 
-    def get(self, request, current_district_id, destination_district_id, date, hour):
-        current_district = get_district_by_id(current_district_id)
-        destination_district = get_district_by_id(destination_district_id)
-        hour = int(hour)
+    def get(self, request):
+        curr_district_id = request.query_params.get("current_district", None)
+        dest_district_id = request.query_params.get("dest_district", None)
+        travel_date = request.query_params.get("date", None)
+        current_district = get_district_by_id(curr_district_id)
+        destination_district = get_district_by_id(dest_district_id)
+        hour = int(request.query_params.get("hour", 00))
         
         if not current_district or not destination_district:
             return Response({"error": "Invalid district ID"}, status=status.HTTP_400_BAD_REQUEST)
 
         today = datetime.now()
         current_date = today.strftime('%Y-%m-%d')
-        forecast_date = datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m-%d')
+        forecast_date = datetime.strptime(travel_date, '%Y-%m-%d').strftime('%Y-%m-%d')
 
-        current_weather_current = get_weather_data(current_district['lat'], current_district['long'], current_date, current_date)
-        forecast_weather_current = get_weather_data(current_district['lat'], current_district['long'], forecast_date, forecast_date)
-        current_temp_current = current_weather_current['hourly']['temperature_2m'][hour]
-        forecast_temp_current = forecast_weather_current['hourly']['temperature_2m'][hour]
-
-        current_weather_destination = get_weather_data(destination_district['lat'], destination_district['long'], current_date, current_date)
-        forecast_weather_destination = get_weather_data(destination_district['lat'], destination_district['long'], forecast_date, forecast_date)
-        current_temp_destination = current_weather_destination['hourly']['temperature_2m'][hour]
-        forecast_temp_destination = forecast_weather_destination['hourly']['temperature_2m'][hour]
+        current_temp_current, forecast_temp_current = self._serialize_weather_data(current_district, hour, current_date, forecast_date)
+        current_temp_destination, forecast_temp_destination = self._serialize_weather_data(destination_district, hour, current_date, forecast_date)
 
         if isinstance(current_temp_current, (float, int)) and isinstance(forecast_temp_destination, (float, int)):
             if forecast_temp_destination > forecast_temp_current:
