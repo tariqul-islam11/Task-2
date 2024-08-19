@@ -76,3 +76,45 @@ class CoolestDistrictsAPIView(APIView):
         coolest = sorted(district_temperatures, key=lambda x: x['average_temperature_2pm'])[:10]
         print(f"coolest : {coolest}")
         return Response({"coolest_districts": coolest}, status=status.HTTP_200_OK)
+
+
+
+
+class TemperatureComparisonAPIView(APIView):
+    renderer_classes = [JSONRenderer]
+
+    def get(self, request):
+        today = datetime.now()
+        start_date = today.strftime('%Y-%m-%d')
+        end_date = start_date 
+
+        dhaka_coords = {"lat": 23.8103, "lon": 90.4125}
+        sylhet_coords = {"lat": 24.8944, "lon": 91.8687}
+
+        current_weather_dhaka = get_weather_data(dhaka_coords['lat'], dhaka_coords['lon'], start_date=start_date, end_date=end_date)
+        current_temp_dhaka = current_weather_dhaka['hourly']['temperature_2m'][14] #[datetime.now().hour]
+
+        current_weather_sylhet = get_weather_data(sylhet_coords['lat'], sylhet_coords['lon'], start_date=start_date, end_date=end_date)
+        current_temp_sylhet = current_weather_sylhet['hourly']['temperature_2m'][14] #[datetime.now().hour]
+
+        forecast_weather_dhaka = get_weather_data(dhaka_coords['lat'], dhaka_coords['lon'], start_date=start_date, end_date=end_date)
+        forecast_temp_dhaka = forecast_weather_dhaka['hourly']['temperature_2m'][14]
+
+        forecast_weather_sylhet = get_weather_data(sylhet_coords['lat'], sylhet_coords['lon'], start_date=start_date, end_date=end_date)
+        forecast_temp_sylhet = forecast_weather_sylhet['hourly']['temperature_2m'][14]
+
+        if isinstance(current_temp_dhaka, (float, int)) and isinstance(forecast_temp_sylhet, (float, int)):
+            if forecast_temp_sylhet > forecast_temp_dhaka:
+                decision = "The temperature in Sylhet is higher than in Dhaka. You should not visit Sylhet."
+            else:
+                decision = "The temperature in Sylhet is lower than in Dhaka. You should visit Sylhet."
+        else:
+            decision = "Error: Temperature data is not in the expected format."
+
+        return Response({
+            "current_temp_dhaka": current_temp_dhaka,
+            "forecast_temp_dhaka": forecast_temp_dhaka,
+            "current_temp_sylhet": current_temp_sylhet,
+            "forecast_temp_sylhet": forecast_temp_sylhet,
+            "decision": decision
+        }, status=status.HTTP_200_OK)
