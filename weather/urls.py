@@ -1,5 +1,7 @@
 from django.urls import path
-from .views import DistrictListView, CoolestDistrictsAPIView, TemperatureComparisonAPIView
+from .views import DistrictListView
+from .views import CoolestDistrictsAPIView
+from .views import TemperatureComparisonAPIView
 
 urlpatterns = [
     path('districts/', DistrictListView.as_view(), name='district-list'),

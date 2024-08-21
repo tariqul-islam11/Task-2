@@ -18,7 +18,7 @@ def get_districts():
     response.raise_for_status()
     return response.json()
 
-def generate_weather_params(latitude, longitude, start_date, end_date, hourly_data="temperature_2m", timezone="Asia/Dhaka"):
+def weath_params(latitude, longitude, start_date, end_date, hourly_data="temperature_2m", timezone="Asia/Dhaka"):
     return {
         "latitude": latitude,
         "longitude": longitude,
@@ -28,13 +28,13 @@ def generate_weather_params(latitude, longitude, start_date, end_date, hourly_da
         "end_date": end_date
     }
 
-def get_weather_data(lat, lon, start_date, end_date):
-    params = generate_weather_params(lat, lon, start_date=start_date, end_date=end_date)
+def get_weath_data(lat, lon, start_date, end_date):
+    params = weath_params(lat, lon, start_date=start_date, end_date=end_date)
     response = requests.get(weather_api_url, params=params)
     response.raise_for_status()
     return response.json()
 
-def calculate_average_2pm_temperature(weather_data):
+def calc_avg_2pm_temp(weather_data):
     temperature_2pm = []
     for i in range(7):
         day_index = i * 24 + 14  
@@ -74,8 +74,8 @@ class CoolestDistrictsAPIView(APIView):
             lat = district['lat']
             lon = district['long']
             district_id = district['id']
-            weather_data = get_weather_data(lat, lon, start_date, end_date)
-            avg_temp = calculate_average_2pm_temperature(weather_data)
+            weather_data = get_weath_data(lat, lon, start_date, end_date)
+            avg_temp = calc_avg_2pm_temp(weather_data)
             print(f"avg_temp of district id ({district_id}): {avg_temp}")
             district_temperatures.append({
                 "district_id": district['id'],
@@ -93,12 +93,12 @@ class CoolestDistrictsAPIView(APIView):
 class TemperatureComparisonAPIView(APIView):
     renderer_classes = [JSONRenderer]
     
-    def _serialize_weather_data(self, weather_data, hour, curr_date, forecast_date):
-        current_weather_current = get_weather_data(weather_data['lat'], weather_data['long'], curr_date, curr_date)
-        forecast_weather_current = get_weather_data(weather_data['lat'], weather_data['long'], forecast_date, forecast_date)
-        current_temp_current = current_weather_current['hourly']['temperature_2m'][hour]
-        forecast_temp_current = forecast_weather_current['hourly']['temperature_2m'][hour]
-        return current_temp_current, forecast_temp_current
+    def _serialize_weather_data(self, weather_data, hour, curr_date, fore_date):
+        curr_weather = get_weath_data(weather_data['lat'], weather_data['long'], curr_date, curr_date)
+        fore_weather = get_weath_data(weather_data['lat'], weather_data['long'], fore_date, fore_date)
+        curr_temp = curr_weather['hourly']['temperature_2m'][hour]
+        fore_temp = fore_weather['hourly']['temperature_2m'][hour]
+        return curr_temp, fore_temp
 
     def get(self, request):
         curr_district_id = request.query_params.get("current_district", None)
@@ -112,14 +112,14 @@ class TemperatureComparisonAPIView(APIView):
             return Response({"error": "Invalid district ID"}, status=status.HTTP_400_BAD_REQUEST)
 
         today = datetime.now()
-        current_date = today.strftime('%Y-%m-%d')
-        forecast_date = datetime.strptime(travel_date, '%Y-%m-%d').strftime('%Y-%m-%d')
+        curr_date = today.strftime('%Y-%m-%d')
+        fore_date = datetime.strptime(travel_date, '%Y-%m-%d').strftime('%Y-%m-%d')
 
-        current_temp_current, forecast_temp_current = self._serialize_weather_data(current_district, hour, current_date, forecast_date)
-        current_temp_destination, forecast_temp_destination = self._serialize_weather_data(destination_district, hour, current_date, forecast_date)
+        curr_temp, fore_temp = self._serialize_weather_data(current_district, hour, curr_date, fore_date)
+        curr_temp_dest, fore_temp_dest = self._serialize_weather_data(destination_district, hour, curr_date, fore_date)
 
-        if isinstance(current_temp_current, (float, int)) and isinstance(forecast_temp_destination, (float, int)):
-            if forecast_temp_destination > forecast_temp_current:
+        if isinstance(curr_temp, (float, int)) and isinstance(fore_temp_dest, (float, int)):
+            if fore_temp_dest > fore_temp:
                 decision = f"The temperature in {destination_district['name']} is higher than in {current_district['name']}. You should not visit the destination."
             else:
                 decision = f"The temperature in {destination_district['name']} is lower than in {current_district['name']}. You should visit the destination."
@@ -129,9 +129,9 @@ class TemperatureComparisonAPIView(APIView):
         return Response({
             "current_district_name": current_district['name'],
             "destination_district_name": destination_district['name'],
-            "current_temp_current": current_temp_current,
-            "forecast_temp_current": forecast_temp_current,
-            "current_temp_destination": current_temp_destination,
-            "forecast_temp_destination": forecast_temp_destination,
+            "current_temp_current": curr_temp,
+            "forecast_temp_current": fore_temp,
+            "current_temp_destination": curr_temp_dest,
+            "forecast_temp_destination": fore_temp_dest,
             "decision": decision
         }, status=status.HTTP_200_OK)
