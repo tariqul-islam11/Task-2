@@ -51,8 +51,8 @@ class CoolestDistrictsAPIView(BaseTemperatureView):
         )
 
 
-# Single Responsibility Principle (SRP):
-# Open/Closed Principle (OCP):
+# Single Responsibility Principle (SRP)
+# Open/Closed Principle (OCP)
 # The base class should be open for extension, but closed for modification.
 
 class BaseTemperatureComparisonView(APIView):
@@ -90,10 +90,8 @@ class BaseTemperatureComparisonView(APIView):
             )
         return decision
 
-
 # Liskov Substitution Principle (LSP):
 # Derived classes should be substitutable for their base classes.
-
 
 class TemperatureComparisonAPIView(BaseTemperatureComparisonView):
     renderer_classes = [JSONRenderer]
